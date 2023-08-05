@@ -42,7 +42,7 @@ classdef Dw1000 < handle
                 flag = true;
             else
                 flag = false;
-                disp("[Error] Out of index")
+                disp("[ERR] Out of index")
             end
         end
 
@@ -61,25 +61,16 @@ classdef Dw1000 < handle
             end
         end
 
-        % set dim
-        function [] = setDim(obj, dim)
-            if dim == 2 || dim == 3
-                obj.DimSpace = dim;
-            else
-                disp("[Error] Dimension is allow only 2 or 3, not "+dim+" Dim");
-            end
-        end
-
 
         %% Init Setting
-        % addAnchor with ID, x, y, (z)
-        function index = addAnchor(varargin)
+        % addAnchor
+        function index = addAnchor(varargin) % (obj), ID, PosX, PosY, PosZ(option)
             if nargin == 5
                 varargin{1}.PosAnchor = [varargin{1}.PosAnchor ; [varargin{3},varargin{4},varargin{5}]];
             elseif nargin == 4
                 varargin{1}.PosAnchor = [varargin{1}.PosAnchor ; [varargin{3},varargin{4},0]];
             else
-                disp("[Error] Func addAnchor input form is obj,ID, PosX, PosY, PosZ(option)");
+                disp("[ERR] Please check the 'addAnchor' function's input form. The inputs should be 'obj', 'ID', 'PosX', 'PosY', and 'PosZ' (optional).");
                 return
             end
             varargin{1}.NumAnchor = varargin{1}.NumAnchor + 1;
@@ -87,40 +78,38 @@ classdef Dw1000 < handle
             varargin{1}.DistMeasure = zeros(varargin{1}.NumAnchor,1);
             varargin{1}.TimeMeasure = zeros(varargin{1}.NumAnchor,1);
             index = varargin{1}.NumAnchor;
+            if nargin == 5
+                disp(['[RUN] DW1000 addAnchor(' num2str(index) ') <- ID[' num2str(varargin{2}) '] : ' num2str(varargin{3}) ',' num2str(varargin{4}) ',' num2str(varargin{5})]);
+            elseif nargin == 4
+                disp(['[RUN] DW1000 addAnchor(' num2str(index) ') <- ID[' num2str(varargin{2}) '] : ' num2str(varargin{3}) ',' num2str(varargin{4})]);
+            end
+
             varargin{1}.setMatInverse();
         end
         
         % Update Anchore
-        function [] = updateAnchor(varargin)          
+        function [] = updateAnchor(varargin) %% (obj), ID, PosX, PosY, PosZ(option)
             if varargin{1}.checkIndex(varargin{2})
                 if nargin == 6
                     varargin{1}.PosAnchor(varargin{2},:) = [varargin{4}, varargin{5}, varargin{6}];
                 elseif nargin == 5
                     varargin{1}.PosAnchor(varargin{2},:) = [varargin{4}, varargin{5}, 0];
                 else
-                    disp("[Error] Func updateAnchor input form is obj, ID, PosX, PosY, PosZ(option)");
+                    disp("[ERR] Please check the 'updateAnchor' function's input form. The inputs should be 'obj', 'ID', 'PosX', 'PosY', and 'PosZ' (optional).");
                     return
                 end
                 varargin{1}.IDAnchor = varargin{3};
                 varargin{1}.setMatInverse();
             end
         end
-        
-        % Update Anchore 2 Dimension
-        function [] = changeAnchor2(obj, index, ID, PosX, PosY)
-            if obj.DimSpace ~= 2
-                disp("[Error] Privious added anchor dim is "+obj.DimSpace+" that is not 2 Dim");
-                return
-            end
-            if obj.checkIndex(index)
-                obj.PosAnchor(index,:) = [PosX, PosY];
-                obj.IDAnchor = ID;
-                obj.setMatInverse();
-            end
-        end
 
         % Delete Anchore 
-        function [] = deleteAnchor(obj, index)
+        function [] = deleteAnchor(obj, ID)
+            index = obj.findIndex(ID);
+            if index == 0
+                disp("[ERR] The input ID does not exist");
+                return
+            end
             obj.PosAnchor(index,:) = [];
             obj.IDAnchor(index) = [];
             obj.NumAnchor = obj.NumAnchor - 1;
@@ -128,6 +117,9 @@ classdef Dw1000 < handle
             obj.TimeMeasure = zeros(obj.NumAnchor,1);
             obj.setMatInverse();
         end
+
+
+        %% Setter and Getter
         function [] = getDistance(obj, ID, dist)
             for i = 1 : obj.NumAnchor
                 if obj.IDAnchor(i) == ID
@@ -138,6 +130,7 @@ classdef Dw1000 < handle
                 end
             end
         end
+
         function [] = getDistanceTime(obj, ID, dist, time)
             for i = 1 : obj.NumAnchor
                 if obj.IDAnchor(i) == ID
@@ -150,7 +143,7 @@ classdef Dw1000 < handle
         end
         function [] = setMatInverse(obj)
             if obj.NumAnchor > 2
-
+                disp("[RUN] Obtain the inverse matrix by using the registered anchor positions.");
                 MatSudo = zeros(obj.NumAnchor*(obj.NumAnchor-1)/2,size(obj.PosAnchor,2));
                 index = 1;
                 for i = 1 : obj.NumAnchor-1
@@ -162,9 +155,24 @@ classdef Dw1000 < handle
 
                 if(det(MatSudo' * MatSudo) > 1e-8)
                     obj.MatInverse = inv(MatSudo' * MatSudo) * MatSudo';
+                    obj.DimSpace = 3;
                 else
-                    disp("[Error] Anchor Posisions were placed singular position");
-                    return;
+                    disp("[ERR] The 3D anchor positions were placed in a singular location, so we are now attempting to use 2D positions instead.");
+                    MatSudo2 = zeros(obj.NumAnchor*(obj.NumAnchor-1)/2,2);
+                    index = 1;
+                    for i = 1 : obj.NumAnchor-1
+                        for j = i + 1 : obj.NumAnchor
+                            MatSudo2(index,1:2) = 2*(obj.PosAnchor(j,1:2) - obj.PosAnchor(i,1:2));
+                            index = index + 1;
+                        end
+                    end
+                    if(det(MatSudo2' * MatSudo2) > 1e-8)
+                        obj.MatInverse = inv(MatSudo2' * MatSudo2) * MatSudo2';
+                        obj.DimSpace = 2;
+                    else
+                        disp("[ERR] Anchor positions were placed in a singular location");
+                        return;
+                    end
                 end
                 obj.FlagEnable = 1;
             else
@@ -177,7 +185,7 @@ classdef Dw1000 < handle
         function outputPos = getPosition(obj)
             outputPos = zeros(obj.DimSpace,1);
             if(obj.FlagEnable == 0)
-                disp("[Error] Inverse Mat was not builded");
+                disp("[ERR] Inverse matrix was not built");
                 return
             end
 
@@ -185,7 +193,7 @@ classdef Dw1000 < handle
             index = 1;
             for i = 1 : obj.NumAnchor-1
                 for j = i + 1 : obj.NumAnchor
-                    b(index,:) = obj.DistMeasure(i)^2 - obj.DistMeasure(j)^2 + sum(obj.PosAnchor(j,:).^2-obj.PosAnchor(i,:).^2);
+                    b(index,:) = obj.DistMeasure(i)^2 - obj.DistMeasure(j)^2 + sum(obj.PosAnchor(j,1:obj.DimSpace).^2-obj.PosAnchor(i,1:obj.DimSpace).^2);
                     index = index + 1;
                 end
             end
