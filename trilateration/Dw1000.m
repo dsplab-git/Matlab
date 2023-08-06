@@ -141,6 +141,7 @@ classdef Dw1000 < handle
                 end
             end
         end
+        
         function [] = setMatInverse(obj)
             if obj.NumAnchor > 2
                 disp("[RUN] Obtain the inverse matrix by using the registered anchor positions.");

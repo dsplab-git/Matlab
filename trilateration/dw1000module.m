@@ -50,15 +50,15 @@ b = [
 result = (A_inv*b)'
 
 %% Using class
-% DistM.addAnchor(1,anchor_a(1),anchor_a(2),anchor_a(3));
-% DistM.addAnchor(2,anchor_b(1),anchor_b(2),anchor_b(3));
-% DistM.addAnchor(3,anchor_c(1),anchor_c(2),anchor_c(3));
-% DistM.addAnchor(4,anchor_d(1),anchor_d(2),anchor_d(3));
+DistM.addAnchor(1,anchor_a(1),anchor_a(2),anchor_a(3));
+DistM.addAnchor(2,anchor_b(1),anchor_b(2),anchor_b(3));
+DistM.addAnchor(3,anchor_c(1),anchor_c(2),anchor_c(3));
+DistM.addAnchor(4,anchor_d(1),anchor_d(2),anchor_d(3));
 
-DistM.addAnchor(1,anchor_a(1),anchor_a(2));
-DistM.addAnchor(2,anchor_b(1),anchor_b(2));
-DistM.addAnchor(3,anchor_c(1),anchor_c(2));
-DistM.addAnchor(4,anchor_d(1),anchor_d(2));
+% DistM.addAnchor(1,anchor_a(1),anchor_a(2));
+% DistM.addAnchor(2,anchor_b(1),anchor_b(2));
+% DistM.addAnchor(3,anchor_c(1),anchor_c(2));
+% DistM.addAnchor(4,anchor_d(1),anchor_d(2));
 
 DistM.getDistance(1,d1);
 DistM.getDistance(2,d2);
